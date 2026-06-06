@@ -1,0 +1,5 @@
+model,cv_macro_f1_mean,cv_macro_f1_std,test_accuracy,test_macro_f1,test_weighted_f1
+xgboost,0.4803,0.0146,0.5649,0.5267,0.5541
+histgb,0.4759,0.0115,0.5567,0.5247,0.5488
+random_forest,0.4596,0.0056,0.5555,0.5091,0.535
+logreg,0.3988,0.0158,0.4427,0.4197,0.4487
