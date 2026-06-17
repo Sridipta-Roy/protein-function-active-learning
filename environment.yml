@@ -1,0 +1,39 @@
+name: protein-func
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip>=24.0
+  - pip:
+      # Core data handling
+      - pandas>=2.0,<3.0
+      - numpy>=1.26,<2.1
+
+      # Data fetching 
+      - requests>=2.31
+      - tqdm>=4.66
+
+      # Modeling
+      - scikit-learn>=1.4,<1.6
+      - xgboost==2.1.*
+      - shap>=0.45,<0.47
+      - statsmodels>=0.14,<0.15
+      - umap-learn>=0.5,<0.6
+
+      # Bioinformatics features
+      - biopython>=1.83
+
+      # Plotting
+      - matplotlib>=3.8
+      - seaborn>=0.13
+
+      # Notebook environment
+      - jupyter>=1.0
+      - ipykernel>=6.29
+
+      # ESM-2 embeddings 
+      - torch>=2.2
+      - fair-esm>=2.0.0
+
+      # Streamlit demo 
+      - streamlit>=1.30

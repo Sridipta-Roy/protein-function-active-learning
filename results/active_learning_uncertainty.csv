@@ -1,0 +1,12 @@
+strategy,seed,n_labeled,test_macro_f1
+uncertainty,42,100,0.4996
+uncertainty,42,200,0.5404
+uncertainty,42,300,0.5831
+uncertainty,42,400,0.5998
+uncertainty,42,500,0.6232
+uncertainty,42,600,0.637
+uncertainty,42,700,0.6315
+uncertainty,42,800,0.6562
+uncertainty,42,900,0.6576
+uncertainty,42,1000,0.6666
+uncertainty,42,1100,0.6825

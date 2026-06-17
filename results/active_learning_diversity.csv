@@ -1,0 +1,12 @@
+strategy,seed,n_labeled,test_macro_f1
+diversity,42,100,0.4996
+diversity,42,200,0.5494
+diversity,42,300,0.5835
+diversity,42,400,0.6051
+diversity,42,500,0.5986
+diversity,42,600,0.6074
+diversity,42,700,0.6263
+diversity,42,800,0.6285
+diversity,42,900,0.6442
+diversity,42,1000,0.6566
+diversity,42,1100,0.6534

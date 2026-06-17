@@ -1,0 +1,8 @@
+feature_set,model,cv_macro_f1_mean,cv_macro_f1_std,test_accuracy,test_macro_f1,test_weighted_f1
+Hybrid (1312),xgboost,0.6795,0.0115,0.7457,0.7223,0.7449
+ESM (1280),xgboost,0.6806,0.0147,0.7416,0.7165,0.7401
+ESM (1280),logreg,0.6451,0.0049,0.7052,0.6754,0.7042
+Handcrafted (32),xgboost,0.4803,0.0146,0.5649,0.5267,0.5541
+Handcrafted (32),histgb,0.4759,0.0115,0.5567,0.5247,0.5488
+Handcrafted (32),random_forest,0.4596,0.0056,0.5555,0.5091,0.535
+Handcrafted (32),logreg,0.3988,0.0158,0.4427,0.4197,0.4487
