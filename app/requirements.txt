@@ -1,0 +1,8 @@
+# Streamlit demo dependencies (CPU-only, sized for free-tier hosting).
+streamlit>=1.30
+numpy>=1.26
+scikit-learn>=1.4
+joblib>=1.3
+biopython>=1.83
+torch>=2.2
+transformers>=4.40
