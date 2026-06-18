@@ -1,107 +1,127 @@
-# Active Learning for Protein Function Classification
+# Protein Function Classification with Active Learning
 
-Classifying broad protein function categories from sequence-derived features, Galaxy-based
-functional annotations, and protein language model embeddings — and using active learning
-to study how few labels are needed to reach good performance.
+Classify human proteins into six broad function classes from sequence alone, and test whether model-guided label selection (active learning) can reach good accuracy with fewer labels than random selection.
 
-## Purpose
+The project runs through a deliberate progression: handcrafted biochemical features → protein language model (ESM-2) embeddings → active learning simulation. The point of that ordering is to measure how much signal each stage actually adds, rather than jumping straight to a transformer.
 
-Protein function annotation is expensive and incomplete: most known protein sequences lack
-experimentally verified functional labels. This project builds an interpretable supervised
-classifier for broad protein function categories, then simulates a low-label discovery
-setting in which the model chooses which proteins to label next.
+## Question
 
-The guiding question:
+Can sequence-derived features and ESM-2 embeddings predict broad protein function categories, and does uncertainty-based active learning reduce the number of labels needed to train such a classifier?
 
-> Can protein sequence-derived features and protein language model embeddings predict broad
-> functional categories, and can Galaxy-generated annotations provide biological context for
-> model interpretation?
+## Data
 
-The classification target is six broad classes — `enzyme`, `transporter`, `receptor`,
-`dna_rna_binding`, `structural`, and `other` — rather than thousands of GO terms, keeping
-the problem interpretable and meaningful.
+- UniProt Swiss-Prot reviewed human proteins, length 50–1000 aa.
+- 8,520 proteins after filtering; ~7,600 after dropping duplicate sequences.
+- Six classes: `enzyme`, `dna_rna_binding`, `receptor`, `transporter`, `structural`, `other`. Mild imbalance (~3.6:1).
+- Labels are assigned by a priority cascade over UniProt keywords, GO terms, and EC numbers. This means the classifier partly learns to reproduce UniProt's annotation rules from sequence rather than discovering function from scratch —  stated explicitly because it bounds what the results mean.
 
-## Approach
+Full data and labeling details: [`README_data_fetching_processing.md`](README_data_fetching_processing.md).
 
-The project is built in two phases.
+## Results summary
 
-**Supervised pipeline.** Starting from a clean UniProt Swiss-Prot dataset, it progresses
-through sequence-level exploratory analysis, handcrafted biochemical feature engineering,
-baseline classifiers, ESM-2 protein language model embeddings, a hybrid feature model, and
-model interpretability. Galaxy workflows (GO enrichment, Reactome pathway mapping, and
-optional EggNOG/InterProScan annotation) provide an external biological validation layer
-for the model's predictions.
+Headline metric is macro-F1 (mild class imbalance; stratified splits throughout).
 
-**Active learning simulation.** Treating most labels as hidden, the model starts from a
-small labeled set and iteratively selects which proteins to label next. Random sampling,
-uncertainty sampling, and uncertainty + diversity sampling are compared on a fixed test set
-to study whether model-guided selection reaches strong performance with fewer labels.
+| Feature set | Model | Test macro-F1 |
+|---|---|---|
+| Handcrafted (32) | Logistic Regression | 0.420 |
+| Handcrafted (32) | XGBoost | 0.527 |
+| ESM-2 (1280) | Logistic Regression | 0.675 |
+| ESM-2 (1280) | XGBoost | 0.717 |
+| Handcrafted + ESM-2 (1312) | XGBoost | 0.722 |
 
-## Dataset
+Main findings:
 
-- UniProt Swiss-Prot reviewed human proteins (sequence length 50–1000 aa).
-- Fetched directly from the UniProt REST API with pagination and quality filtering.
-- Labels: six broad functional categories derived from EC numbers, GO terms, keywords, and
-  protein names.
-- Mild class imbalance, so evaluation uses stratified splits and macro-F1.
+- **ESM-2 embeddings break the handcrafted ceiling.** XGBoost goes from 0.527 (handcrafted) to 0.717 (ESM). McNemar's test on the shared test set confirms the gap is real (p ≈ 4e-45): ESM corrects 359 proteins the handcrafted model got wrong, against 67 the other way.
+- **The bottleneck was the representation, not the classifier.** Two boosting models on handcrafted features agree to within 0.002, and even logistic regression on ESM (0.675) beats boosted trees on handcrafted features (0.527).
+- **The hybrid model adds nothing significant.** Hybrid beats ESM-only by 0.005, but McNemar's test says that gap is not significant (p = 0.51). The handcrafted features carry no independent signal once ESM is present, so ESM-only is reported as the effective best model.
 
-## Current status
+Modeling details and the earlier baseline stage:
+[`README_eda_features_modeling.md`](README_eda_features_modeling.md).
 
-The data collection, exploratory analysis, handcrafted feature engineering, and baseline
-modeling stages are complete. Handcrafted biochemical features reach a macro-F1 of ~0.53 on
-the six-class problem (well above the ~0.17 random baseline), with tree-based models
-clearly outperforming logistic regression — establishing the signal recoverable from simple
-sequence biochemistry before introducing protein language model embeddings. ESM embeddings,
-the hybrid model, interpretability, and the active learning experiments follow.
+## Interpretability
 
-See `README_eda_features_modeling.md` for detailed results from the EDA, feature
-engineering, and baseline modeling stages.
+Two views, because the best model and the interpretable model are not the same one.
 
-## Tech stack
+Handcrafted features (interpretable, weaker model): permutation importance is flat — no single feature dominates, consistent with the low ceiling. The per-class signatures match biochemistry: transporters and receptors are hydrophobic (high GRAVY), DNA/RNA-binding proteins are positively charged, structural proteins are cysteine-rich. SHAP adds direction and shows a subtler point — enzymes have no positive compositional signature and are instead identified largely by the *absence* of features that mark other classes (e.g. low serine pushes toward enzyme). That exclusionary signal is why the heatmap shows a flat enzyme row while SHAP still finds usable signal: the heatmap measures average position, SHAP measures per-protein model behavior, and the two diverge most for acompositionally average but heterogeneous class like enzyme.
 
-**Language:** Python 3.12
+ESM embeddings (best model, abstract): individual embedding dimensions carry no biochemical meaning, so feature-level interpretation does not apply. A 2D PCA of the embeddings is an undifferentiated blob (the top two components explain only
+~53% of variance) — the class signal is distributed across many dimensions, which is the defining property of a learned representation and the reason ESM wins. A non-linear t-SNE projection recovers visible class structure that PCA cannot show.
 
-**Data & numerics:** pandas, NumPy
+## Active learning
 
-**Machine learning:** scikit-learn (pipelines, `ColumnTransformer`, logistic regression,
-random forest, histogram gradient boosting), XGBoost
+Simulates a low-label discovery setting: most labels are hidden, and each round a strategy picks 100 proteins to "label". Three strategies compared on a fixed test set, using logistic regression on ESM embeddings (fast to retrain):
 
-**Bioinformatics:** Biopython (`ProteinAnalysis` for physicochemical features), ESM-2
-(protein language model embeddings), Galaxy (GO enrichment, Reactome, EggNOG, InterProScan)
+- **random** (averaged over 5 seeds) — the baseline.
+- **uncertainty** — pick the least-confident proteins (1 − max class probability).
+- **diversity** — uncertain and spread out (cluster candidates, pick representatives).
 
-**Data source:** UniProt REST API
+Result: uncertainty sampling reached macro-F1 ≥ 0.625 with 600 labels versus 1100 for random — about 45% fewer labels for the same accuracy. Diversity sampling did not improve on plain uncertainty (700 labels to the same target), so the simpler
+method is preferred here; the deduplicated pool was apparently not redundant enough for diversity-aware selection to help. Below ~300 labels all strategies tie, since the model's uncertainty estimates are unreliable until it has enough data.
 
-**Visualization:** matplotlib, seaborn
+Caveat: uncertainty came from logistic-regression probabilities, which are not perfectly calibrated; better calibration could sharpen the effect.
 
-**App:** Streamlit (interactive prediction demo)
+## Galaxy validation
 
-**Environment:** Jupyter notebooks for analysis, reusable `src/` modules for shared logic
+Galaxy is used only as a biological validation layer, never as a feature source. Because the labels are already derived from GO/keyword/EC annotations, feeding Galaxy annotations back in as features would be circular. Instead, high-confidence predictions are exported and checked for GO/Reactome enrichment consistent with the predicted class. (Validation stage; see `galaxy_outputs/`.)
+
+## Demo
+
+A Streamlit app classifies a pasted sequence: ESM-2 embedding → logistic-regression classifier → predicted class with the full probability distribution and a handcrafted-feature readout.
+
+The notebooks use ESM-2 650M (macro-F1 ≈ 0.72). The deployed demo uses ESM-2 35M so it fits free-tier hosting (~1 GB RAM) — same pipeline, smaller model, some accuracy traded for deployability. Setup and deployment notes:
+[`app/README_streamlit_demo.md`](app/README_streamlit_demo.md).
+
+```bash
+pip install -r requirements.txt
+streamlit run app/streamlit_app.py
+```
 
 ## Repository layout
 
 ```text
-protein-function-active-learning/
+.
 ├── data/
-│   ├── raw/              # raw UniProt download
-│   ├── processed/        # cleaned dataset, labels, features
-│   └── embeddings/        # ESM-2 embeddings
-├── galaxy_inputs/        # protein IDs and FASTA for Galaxy
-├── galaxy_outputs/       # GO enrichment, Reactome, annotation outputs
-├── notebooks/            # data collection, EDA, features, modeling, active learning
-├── src/                  # features.py, train.py, embeddings.py, active_learning.py, ...
-├── results/              # metrics and figures
-└── app/                  # Streamlit demo
+│   ├── raw/                 UniProt TSV/CSV
+│   ├── processed/           cleaned, filtered, labeled, features
+│   └── embeddings/          ESM-2 embeddings (.npy + metadata)
+├── notebooks/
+│   ├── 001_data_collection.ipynb
+│   ├── 02_sequence_eda.ipynb
+│   ├── 03_feature_engineering.ipynb
+│   ├── 04_supervised_baselines.ipynb
+│   ├── 05_esm_embeddings.ipynb            (Colab GPU)
+│   ├── 06_embedding_models.ipynb
+│   ├── 07_interpretability.ipynb
+│   ├── 08_active_learning.ipynb
+│   └── 09_prepare_demo_artifacts.ipynb    (Colab GPU)
+├── src/
+│   ├── features.py          handcrafted features (Biopython)
+│   ├── train.py             baseline pipelines
+│   ├── embeddings.py        ESM-2 embedding generation
+│   └── active_learning.py   sampling strategies + experiment loop
+├── galaxy_inputs/           protein IDs + FASTA for Galaxy
+├── galaxy_outputs/          GO / Reactome enrichment results
+├── results/                 metrics + figures
+└── app/
+    ├── streamlit_app.py
+    └── artifacts/           deployable 35M classifier
 ```
 
-## How to run
+## Reproducing
 
-Run the notebooks in order from data collection through modeling. Each writes its outputs
-into `data/processed/` or `results/` for the next stage to consume. Shared logic
-(featurization, training pipelines) lives in `src/` and is imported by the notebooks.
+GPU (Colab) is needed only for the two embedding steps (notebooks 05 and 09); everything else runs on CPU.
 
-## Relationship to previous work
+```bash
+pip install -r requirements.txt
+# notebooks 001 → 04 locally
+# notebook 05 on Colab GPU (generates ESM-2 embeddings)
+# notebooks 06 → 08 locally
+# notebook 09 on Colab GPU (generates the demo's 35M classifier)
+```
 
-This project extends an earlier protein function prediction effort that generated
-natural-language function descriptions using ESM-2 and a small language model. Here the
-focus shifts to interpretable classification, Galaxy-based biological annotation, and active
-learning for low-label biological discovery.
+## Limitations
+
+- Labels are derived from existing annotations, so the task is closer to "predict UniProt's annotation from sequence" than to de novo function discovery.
+- Sequences are capped at 1000 aa; long multi-domain proteins are truncated, so their predictions reflect only the retained region (e.g. EGFR, both enzyme and receptor, is predicted receptor from its N-terminal region).
+- `other` is a heterogeneous catch-all and is the hardest class throughout.
+- The active-learning result is one dataset with one model; the label-efficiency gain should not be assumed to transfer to other settings without rechecking.
