@@ -37,3 +37,4 @@ dependencies:
 
       # Streamlit demo 
       - streamlit>=1.30
+      - joblib>=1.3
