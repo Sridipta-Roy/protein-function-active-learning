@@ -1,18 +1,14 @@
 # Streamlit demo
 
-Interactive demo: paste a protein sequence, get its predicted broad function class
-with confidence and an interpretability readout.
+Interactive demo: paste a protein sequence, get its predicted broad function class with confidence and an interpretability readout.
 
 ## What it does
 
-Sequence → **ESM-2 (35M)** embedding → logistic-regression classifier → predicted
-class (enzyme / DNA-RNA-binding / receptor / transporter / structural / other).
+Sequence → **ESM-2 (35M)** embedding → logistic-regression classifier → predicted class (enzyme / DNA-RNA-binding / receptor / transporter / structural / other).
 
 ## Accuracy note
 
-The research notebooks use **ESM-2 650M** (test macro-F1 ≈ 0.72). This live demo
-uses **ESM-2 35M** so it fits free-tier hosting (~1 GB RAM) — same pipeline, smaller
-model, some accuracy traded for deployability. Predictions are illustrative.
+The research notebooks use **ESM-2 650M** (test macro-F1 ≈ 0.72). This live demo uses **ESM-2 35M** so it fits free-tier hosting (~1 GB RAM) — same pipeline, smaller model, some accuracy traded for deployability. Predictions are illustrative.
 
 ## Run locally
 

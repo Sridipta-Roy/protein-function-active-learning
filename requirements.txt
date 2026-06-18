@@ -27,6 +27,8 @@ ipykernel>=6.29
 # ESM-2 embeddings
 torch>=2.2
 fair-esm>=2.0.0
+transformers>=4.40
 
 # Streamlit demo 
 streamlit>=1.30
+joblib>=1.3

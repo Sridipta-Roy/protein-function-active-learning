@@ -1,0 +1,13 @@
+{
+  "esm_model": "facebook/esm2_t12_35M_UR50D",
+  "embedding_dim": 480,
+  "classes": [
+    "dna_rna_binding",
+    "enzyme",
+    "other",
+    "receptor",
+    "structural",
+    "transporter"
+  ],
+  "train_macro_f1": 0.7701
+}
