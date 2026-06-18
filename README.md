@@ -1,4 +1,4 @@
-# Protein Function Classification with Active Learning
+# Protein Function Classification with Active Learning [![Streamlit](https://img.shields.io/badge/demo-live-brightgreen)](https://protein-function-classifier-ph01.streamlit.app)
 
 Classify human proteins into six broad function classes from sequence alone, and test whether model-guided label selection (active learning) can reach good accuracy with fewer labels than random selection.
 
@@ -60,10 +60,6 @@ method is preferred here; the deduplicated pool was apparently not redundant eno
 
 Caveat: uncertainty came from logistic-regression probabilities, which are not perfectly calibrated; better calibration could sharpen the effect.
 
-## Galaxy validation
-
-Galaxy is used only as a biological validation layer, never as a feature source. Because the labels are already derived from GO/keyword/EC annotations, feeding Galaxy annotations back in as features would be circular. Instead, high-confidence predictions are exported and checked for GO/Reactome enrichment consistent with the predicted class. (Validation stage; see `galaxy_outputs/`.)
-
 ## Demo
 
 A Streamlit app classifies a pasted sequence: ESM-2 embedding → logistic-regression classifier → predicted class with the full probability distribution and a handcrafted-feature readout.
@@ -106,7 +102,19 @@ streamlit run app/streamlit_app.py
     ├── streamlit_app.py
     └── artifacts/           deployable 35M classifier
 ```
+## Tech stack
 
+- **Language:** Python 3.11
+- **Data:** UniProt REST API, pandas, NumPy
+- **Features:** Biopython (ProteinAnalysis)
+- **Protein language model:** ESM-2 (650M for research, 35M for the demo) via HuggingFace Transformers, PyTorch
+- **Modeling:** scikit-learn, XGBoost
+- **Interpretability:** SHAP, permutation importance, t-SNE / PCA
+- **Statistics:** statsmodels (McNemar's test)
+- **Active learning:** custom (scikit-learn KMeans for diversity sampling)
+- **Demo:** Streamlit, deployed on Streamlit Community Cloud
+- **Environment:** VS Code (local), Google Colab (GPU embedding steps)
+  
 ## Reproducing
 
 GPU (Colab) is needed only for the two embedding steps (notebooks 05 and 09); everything else runs on CPU.
